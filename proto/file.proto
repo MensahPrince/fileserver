@@ -1,0 +1,4 @@
+syntax = "proto3";
+
+package task;
+option go_package = "dotasks/gen/task";
