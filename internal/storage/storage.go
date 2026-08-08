@@ -23,7 +23,7 @@ func NewDiskStorage(root string) *DiskStorage {
 	return &DiskStorage{root: root}
 }
 
-var ErrNotFound = errors.New("cannot find file to delete")
+var ErrNotFound = errors.New("cannot find file")
 
 func (d *DiskStorage) resolvePath(id string) (string, error) {
 	path := filepath.Join(d.root, id)
