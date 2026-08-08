@@ -2,9 +2,11 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
+
 	"path/filepath"
 )
 
@@ -25,7 +27,7 @@ func NewDiskStorage(root string) *DiskStorage {
 func (d *DiskStorage) resolvePath(id string) (string, error) {
 	path := filepath.Join(d.root, id)
 	cleanedPath := filepath.Clean(path)
-	 
+
 	if !filepath.IsLocal(cleanedPath) {
 		return "", fmt.Errorf("Path Escaped")
 	}
@@ -54,4 +56,33 @@ func (d *DiskStorage) Save(ctx context.Context, id string, r io.Reader) (int64, 
 	}
 
 	return n, nil
+}
+
+func FileExists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil // File or directory exists
+	}
+
+	if errors.Is(err, os.ErrNotExist) {
+		return false, nil // Doesn't exist
+	}
+
+	// Some other error (e.g. permission denied)
+	return false, err
+}
+
+func (d *DiskStorage) Delete(ctx context.Context, id string) error {
+	path, err := d.resolvePath(id)
+	if err != nil {
+		return err
+	}
+
+	//Delete data
+	err = os.Remove(path)
+	if err != nil {
+		return fmt.Errorf("Failed to remove data")
+	}
+
+	return nil
 }
