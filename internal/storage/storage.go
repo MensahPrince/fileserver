@@ -53,7 +53,7 @@ func (d *DiskStorage) Save(ctx context.Context, id string, r io.Reader) (int64, 
 
 	n, err := io.Copy(f, r)
 	if err != nil {
-		return n, err
+		return n, fmt.Errorf("failed to save: %w", err)
 	}
 
 	return n, nil
