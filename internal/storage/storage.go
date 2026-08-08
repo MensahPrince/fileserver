@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-
 	"path/filepath"
 )
 
@@ -24,12 +23,14 @@ func NewDiskStorage(root string) *DiskStorage {
 	return &DiskStorage{root: root}
 }
 
+var ErrNotFound = errors.New("cannot find file to delete")
+
 func (d *DiskStorage) resolvePath(id string) (string, error) {
 	path := filepath.Join(d.root, id)
 	cleanedPath := filepath.Clean(path)
 
 	if !filepath.IsLocal(cleanedPath) {
-		return "", fmt.Errorf("Path Escaped")
+		return "", fmt.Errorf("path escaped")
 	}
 
 	return cleanedPath, nil
@@ -78,11 +79,32 @@ func (d *DiskStorage) Delete(ctx context.Context, id string) error {
 		return err
 	}
 
-	//Delete data
 	err = os.Remove(path)
+
+	if errors.Is(err, os.ErrNotExist) {
+		return ErrNotFound
+	}
+
 	if err != nil {
-		return fmt.Errorf("Failed to remove data")
+		return fmt.Errorf("failed to delete: %w", err)
 	}
 
 	return nil
+}
+
+func (d *DiskStorage) Open(ctx context.Context, id string) (io.ReadCloser, error) {
+	path, err := d.resolvePath(id)
+	if err != nil {
+		return nil, err
+	}
+
+	file, err := os.Open(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to open: %w", err)
+	}
+
+	return file, nil
 }
