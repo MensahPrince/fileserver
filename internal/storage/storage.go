@@ -26,14 +26,14 @@ func NewDiskStorage(root string) *DiskStorage {
 var ErrNotFound = errors.New("cannot find file")
 
 func (d *DiskStorage) resolvePath(id string) (string, error) {
-	path := filepath.Join(d.root, id)
-	cleanedPath := filepath.Clean(path)
-
-	if !filepath.IsLocal(cleanedPath) {
+	// Validate the id on its own, before joining: checking the joined path
+	// rejects every id when root is absolute, and lets "../x" escape a
+	// relative root since Join cleans "data/../x" down to the local path "x".
+	if !filepath.IsLocal(id) {
 		return "", fmt.Errorf("path escaped")
 	}
 
-	return cleanedPath, nil
+	return filepath.Join(d.root, id), nil
 }
 
 func (d *DiskStorage) Save(ctx context.Context, id string, r io.Reader) (int64, error) {
@@ -57,20 +57,6 @@ func (d *DiskStorage) Save(ctx context.Context, id string, r io.Reader) (int64, 
 	}
 
 	return n, nil
-}
-
-func FileExists(path string) (bool, error) {
-	_, err := os.Stat(path)
-	if err == nil {
-		return true, nil // File or directory exists
-	}
-
-	if errors.Is(err, os.ErrNotExist) {
-		return false, nil // Doesn't exist
-	}
-
-	// Some other error (e.g. permission denied)
-	return false, err
 }
 
 func (d *DiskStorage) Delete(ctx context.Context, id string) error {

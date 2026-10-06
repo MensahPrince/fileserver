@@ -1,43 +1,30 @@
 package storage
 
-import (
-	"fmt"
-	"path/filepath"
-	"testing"
-)
+import "testing"
 
-var root string = "./data"
-
-func Traversal(path string) bool {
-
-	fmt.Printf("path is: %s", path)
-	//clean the path
-	clean_path := filepath.Clean(path)
-	fmt.Printf("Cleaned Path: %s ", clean_path)
-	//Check if path is absolute
-
-	return filepath.IsLocal(clean_path)
-}
-
-func TestTraversal(t *testing.T) {
+func TestResolvePath(t *testing.T) {
+	roots := []string{"./data", "/var/lib/fileserver"}
 	tests := []struct {
-		name      string
-		id        string
-		wantLocal bool
+		name    string
+		id      string
+		wantErr bool
 	}{
-		{"legit uuid", "7f3a9c2e-6b41-4d88-a5f7-9e2c1b6d4a90", true},
-		{"parent traversal", "../../etc/passwd", false},
-		{"empty path", "", true},
-		{"standard path", "C:/Users/Public/Documents/Project%20hiles/2026%20Reports/summary%20inal.pdf", false},
+		{"legit uuid", "7f3a9c2e-6b41-4d88-a5f7-9e2c1b6d4a90", false},
+		{"parent traversal", "../../etc/passwd", true},
+		{"single parent escape", "../main.go", true},
+		{"absolute path", "/etc/passwd", true},
+		{"empty id", "", true},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			p := filepath.Join(root, tt.id)
-			got := Traversal(p)
-			if got != tt.wantLocal {
-				t.Errorf("Traversal(%q) = %v, want %v", p, got, tt.wantLocal)
-			}
-		})
+	for _, r := range roots {
+		d := NewDiskStorage(r)
+		for _, tt := range tests {
+			t.Run(r+"/"+tt.name, func(t *testing.T) {
+				got, err := d.resolvePath(tt.id)
+				if (err != nil) != tt.wantErr {
+					t.Errorf("resolvePath(%q) = %q, %v; wantErr %v", tt.id, got, err, tt.wantErr)
+				}
+			})
+		}
 	}
 }
